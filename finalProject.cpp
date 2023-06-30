@@ -1,3 +1,4 @@
+#include <vector>
 #include "CSCIx229.h"
 int width  = 1; //  Window width
 int height = 1; //  Window height
@@ -5,9 +6,10 @@ double asp = 1; //  Window aspect ratio
 
 #define NMIN  3 //  Minimum number of vertecies to render house
 #define NMAX  8 //  Maximum number of vertecies to render house
+#define PLOTMIN 20 // Minimum land plot size
+#define PLOTMAX 70 // Maxium land plot size
 int n=0;        //  Number of nodes making up land plot
 int move=-1;    //  Point getting moved
-typedef struct {double x,y,z;} Point;
 Point P[NMAX];  //  Data points
 //Display mode 0: edit plot of house
 //Display mode 1: View house from exterior
@@ -17,6 +19,7 @@ int mode=0;     //  Display mode
 int dimMin = 20;//  Minimum plot size
 int dimMax = 200;// Maxiumum plot size
 int dim = 20;     //  Scale of world
+//3D House construction components
 
 
 /*
@@ -98,6 +101,40 @@ void mouse(int button, int state, int x, int y){
         glutPostRedisplay();
     }
 }
+void special(int key, int x, int y){
+    if(mode == 0){
+        switch (key)
+        {
+        case GLUT_KEY_PAGE_DOWN:
+            if(dim-1 >= PLOTMIN)dim--;
+            Project(0,asp,dim);
+            break;
+        case GLUT_KEY_PAGE_UP:
+            if(dim+1 < PLOTMAX)dim++;
+            Project(0,asp,dim);
+        default:
+            break;
+        }
+    }
+    glutPostRedisplay();
+}
+void key(unsigned char ch, int x, int y){
+    if(mode == 0){
+        switch (ch)
+        {
+        case 'd':
+            n = 0;
+            break;
+        default:
+            break;
+        }
+    }else if(mode == 1){
+
+    }else if(mode == 2){
+
+    }
+    glutPostRedisplay();
+}
 /*
  *  GLUT calls this routine when the window is resized
  */
@@ -118,6 +155,15 @@ void display(){
     glLoadIdentity();
     glRotatef(-90,1,0,0);
     if(mode==0){
+        glColor3f(.3,.3,.3);
+        glBegin(GL_LINES);
+        for(int i=-dim;i<=dim;i++) {
+            glVertex3f(i,0,-dim);
+            glVertex3f(i,0,dim);
+            glVertex3f(-dim,0,i);
+            glVertex3f(dim,0,i);
+        };
+        glEnd();
         glColor3f(0,1,0);
         glBegin(GL_LINE_LOOP);
         for(int i = 0; i < n; i++){
@@ -148,12 +194,14 @@ int main(int argc, char *argv[])
    if (glewInit()!=GLEW_OK) Fatal("Error initializing GLEW\n");
 #endif
     //  Set callbacks
-   glutDisplayFunc(display);
-   glutReshapeFunc(reshape);
-   glutMouseFunc(mouse);
-   glutMotionFunc(motion);
-   //  Pass control to GLUT so it can interact with the user
-   ErrCheck("init");
-   glutMainLoop();
-   return 0;
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutMouseFunc(mouse);
+    glutMotionFunc(motion);
+    glutKeyboardFunc(key);
+    glutSpecialFunc(special);
+    //  Pass control to GLUT so it can interact with the user
+    ErrCheck("init");
+    glutMainLoop();
+    return 0;
 }

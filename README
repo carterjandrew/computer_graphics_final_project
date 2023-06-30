@@ -15,3 +15,6 @@ Key bindings
   0          Delete all points
   m/M        Increase/decrease number of evaluations
   ESC        Exit
+
+Sources:
+  https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-SA-97135.pdf

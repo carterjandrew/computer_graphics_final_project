@@ -25,7 +25,7 @@ CLEAN=rm -f $(EXE) *.o *.a
 endif
 
 # Dependencies
-finalProject.o: finalProject.c CSCIx229.h
+finalProject.o: finalProject.cpp CSCIx229.h
 fatal.o: fatal.c CSCIx229.h
 errcheck.o: errcheck.c CSCIx229.h
 print.o: print.c CSCIx229.h

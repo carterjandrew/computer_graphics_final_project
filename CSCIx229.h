@@ -57,6 +57,7 @@ unsigned int LoadTexBMP(const char* file);
 void Project(double fov,double asp,double dim);
 void ErrCheck(const char* where);
 int  LoadOBJ(const char* file);
+typedef struct {double x,y,z;} Point;
 
 #ifdef __cplusplus
 }
