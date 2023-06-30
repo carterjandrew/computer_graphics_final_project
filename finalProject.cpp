@@ -9,8 +9,8 @@ double asp = 1; //  Window aspect ratio
 #define PLOTMIN 20 // Minimum land plot size
 #define PLOTMAX 70 // Maxium land plot size
 int n=0;        //  Number of nodes making up land plot
-int move=-1;    //  Point getting moved
-Point P[NMAX];  //  Data points
+int move=-1;    //  Point2d getting moved
+Point2d P[NMAX];  //  Data Point2ds
 //Display mode 0: edit plot of house
 //Display mode 1: View house from exterior
 //Display mode 2: First person view mode
@@ -25,23 +25,21 @@ int dim = 20;     //  Scale of world
 /*
  *  Translate mouse (x,y) to world coordinates
  */
-Point Mouse2World(int x,int y)
+Point2d Mouse2World(int x,int y)
 {
-   Point p;
+   Point2d p;
    p.x = dim*(2*asp*x       /(float)(width -1) - asp);
-   p.z = dim*(2*(height-1-y)/(float)(height-1) - 1);
-   p.y = 0;
+   p.y = dim*(2*(height-1-y)/(float)(height-1) - 1);
    return p;
 }
 /*
- *  Distance to point
+ *  Distance to Point2d
  */
-double Distance(Point p,int k)
+double Distance(Point2d p,int k)
 {
    double dx = p.x - P[k].x;
    double dy = p.y - P[k].y;
-   double dz = p.z - P[k].z;
-   return sqrt(dx*dx+dy*dy+dz*dz);
+   return sqrt(dx*dx+dy*dy);
 }
 /*
  *  GLUT calls this routine when a mouse is moved
@@ -49,7 +47,7 @@ double Distance(Point p,int k)
 void motion(int x,int y)
 {
    if (move<0) return;
-   //  Update point
+   //  Update Point2d
    P[move] = Mouse2World(x,y);
    //  Redisplay
    glutPostRedisplay();
@@ -59,8 +57,8 @@ void motion(int x,int y)
 */
 void mouse(int button, int state, int x, int y){
     if(mode == 0){
-        Point p = Mouse2World(x,y);
-        //Add a point or edit close point
+        Point2d p = Mouse2World(x,y);
+        //Add a Point2d or edit close Point2d
         if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
             int nodeToEdit = -1;
             double dmin = .2*dim;
@@ -165,16 +163,23 @@ void display(){
         };
         glEnd();
         glColor3f(0,1,0);
+        for(int i = 0; i < n-1; i++){
+            for(int j = 0; j < n-1; j++){
+                if(i==j) continue;
+                if(linesIntersect(P[i],P[i+1],P[j],P[j+1]) == 1) glColor3f(1,0,0);
+            }
+        }
+        printf("\n");
         glBegin(GL_LINE_LOOP);
         for(int i = 0; i < n; i++){
-            glVertex3d(P[i].x, P[i].y, P[i].z);
+            glVertex3d(P[i].x,0 ,P[i].y);
         }
         glEnd();
         glColor3f(1,1,1);
         glPointSize(7);
         glBegin(GL_POINTS);
         for(int i = 0; i < n; i++){
-            glVertex3d(P[i].x, P[i].y, P[i].z);
+            glVertex3d(P[i].x, 0, P[i].y);
         }
         glEnd();
         glPointSize(1);

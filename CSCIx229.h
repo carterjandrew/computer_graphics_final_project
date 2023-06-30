@@ -57,8 +57,10 @@ unsigned int LoadTexBMP(const char* file);
 void Project(double fov,double asp,double dim);
 void ErrCheck(const char* where);
 int  LoadOBJ(const char* file);
-typedef struct {double x,y,z;} Point;
-
+typedef struct {double x,y,z;} Point3d;
+typedef struct {double x,y;} Point2d;
+int raycastPolygon(Point2d dest, Point2d* polygon, int polygonSize);
+int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2);
 #ifdef __cplusplus
 }
 #endif
