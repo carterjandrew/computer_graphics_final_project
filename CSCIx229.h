@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
+#include <float.h>
 
 // GLEW _MUST_ be included first
 #ifdef USEGLEW
@@ -61,6 +62,7 @@ typedef struct {double x,y,z;} Point3d;
 typedef struct {double x,y;} Point2d;
 int raycastPolygon(Point2d dest, Point2d* polygon, int polygonSize);
 int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2);
+Point2d pointOfIntersection(Point2d s1, Point2d e1, Point2d s2, Point2d e2);
 #ifdef __cplusplus
 }
 #endif

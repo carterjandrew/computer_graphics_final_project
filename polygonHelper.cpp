@@ -53,7 +53,29 @@ int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2){
     // If they are 0t collinear, they must intersect in exactly one point.
     return 1;
 }
+Point2d make2dPoint(double x, double y){
+    Point2d point;
+    point.x = x;
+    point.y = y;
+    return point;
+}
+Point2d pointOfIntersection(Point2d s1, Point2d e1, Point2d s2, Point2d e2){
+    double a1, a2, b1, b2, c1, c2;
+    double det,x,y;
+    a1 = e1.y - s1.y;
+    b1 = s1.x - e1.x;
+    c1 = a1*s1.x + b1*e1.y;
+    a2 = e2.y - s2.y;
+    b2 = s2.x - e2.x;
+    c2 = a2*s2.x + b2*e2.y;
+    det = a1*b2-a2*b1;
+    if(det == 0) return make2dPoint(DBL_MAX,DBL_MAX);
+    x = (b2*c1 - b1*c2)/det;
+    y = (a1*c2 - a2*c1)/det;
+    return make2dPoint(x,y);
+}
+
 
 int raycastPolygon(Point2d dest, Point2d* polygon, int polygonSize){
-    
+    return 0;
 }

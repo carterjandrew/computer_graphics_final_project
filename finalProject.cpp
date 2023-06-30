@@ -163,10 +163,20 @@ void display(){
         };
         glEnd();
         glColor3f(0,1,0);
-        for(int i = 0; i < n-1; i++){
-            for(int j = 0; j < n-1; j++){
-                if(i==j) continue;
-                if(linesIntersect(P[i],P[i+1],P[j],P[j+1]) == 1) glColor3f(1,0,0);
+        if(move == -1){
+            for(int i = 0; i < n-1; i++){
+                for(int j = 0; j < n-1; j++){
+                    if(i==j) continue;
+                    if(linesIntersect(P[i],P[i+1],P[j],P[j+1]) == 1){ 
+                        glColor3f(1,0,0);
+                        Point2d intersection = pointOfIntersection(P[i],P[i+1],P[j],P[j+1]);
+                        glPointSize(7);
+                        glBegin(GL_POINTS);
+                        glVertex3f(intersection.x, 0, intersection.y);
+                        glEnd();
+                        glPointSize(1);
+                    }
+                }
             }
         }
         printf("\n");
