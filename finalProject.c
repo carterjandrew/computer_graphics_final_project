@@ -16,7 +16,7 @@ Point P[NMAX];  //  Data points
 int mode=0;     //  Display mode
 int dimMin = 20;//  Minimum plot size
 int dimMax = 200;// Maxiumum plot size
-int dim =1;     //  Scale of world
+int dim = 20;     //  Scale of world
 
 
 /*
@@ -60,7 +60,7 @@ void mouse(int button, int state, int x, int y){
         //Add a point or edit close point
         if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
             int nodeToEdit = -1;
-            int dmin = .05*dim;
+            double dmin = .2*dim;
             for(int i = 0; i < n; i++){
                 double dist = Distance(p,i);
                 if(dist < dmin){
@@ -69,14 +69,15 @@ void mouse(int button, int state, int x, int y){
                 }
             }
             if(n < NMAX && nodeToEdit == -1){
-                P[++n] = p;
+                P[n] = p;
                 move = n;
+                n++;
             }else if(nodeToEdit != -1){
                 move = nodeToEdit;
             }
         }else if(button == GLUT_RIGHT_BUTTON && state == GLUT_UP){
             int nodeToDelete = -1;
-            int dmin = .02*dim;
+            double dmin = .05*dim;
             for(int i = 0; i < n; i++){
                 double dist = Distance(p,i);
                 if(dist < dmin){
@@ -84,7 +85,15 @@ void mouse(int button, int state, int x, int y){
                     dmin = dist;
                 }
             }
-            printf("Would delete node %d", nodeToDelete);
+            if(nodeToDelete != -1){
+                for(int i = nodeToDelete; i < n-1; i++){
+                    P[i] = P[i+1];
+                }
+                n--;
+            }
+        }else if(button == GLUT_LEFT_BUTTON && state == GLUT_UP){
+            P[move] = p;
+            move = -1;
         }
         glutPostRedisplay();
     }
@@ -102,16 +111,49 @@ void reshape(int w,int h)
    //  Set the viewport to the entire window
    glViewport(0,0, RES*width,RES*height);
    //  Project
-   Project(0,asp,1);
+   Project(0,asp,dim);
 }
 void display(){
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glLoadIdentity();
+    glRotatef(-90,1,0,0);
     if(mode==0){
+        glColor3f(0,1,0);
         glBegin(GL_LINE_LOOP);
-
+        for(int i = 0; i < n; i++){
+            glVertex3d(P[i].x, P[i].y, P[i].z);
+        }
         glEnd();
-        glBegin(GL_POINT);
-
+        glColor3f(1,1,1);
+        glPointSize(7);
+        glBegin(GL_POINTS);
+        for(int i = 0; i < n; i++){
+            glVertex3d(P[i].x, P[i].y, P[i].z);
+        }
         glEnd();
+        glPointSize(1);
     }
+    ErrCheck("display");
+    glFlush();
+    glutSwapBuffers();
+}
+int main(int argc, char *argv[])
+{
+    glutInit(&argc,argv);
+    glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+    glutInitWindowSize(600,600);
+    glutCreateWindow("Carter Andrew | Final Project | Procedural House Generation");
+#ifdef USEGLEW
+   //  Initialize GLEW
+   if (glewInit()!=GLEW_OK) Fatal("Error initializing GLEW\n");
+#endif
+    //  Set callbacks
+   glutDisplayFunc(display);
+   glutReshapeFunc(reshape);
+   glutMouseFunc(mouse);
+   glutMotionFunc(motion);
+   //  Pass control to GLUT so it can interact with the user
+   ErrCheck("init");
+   glutMainLoop();
+   return 0;
 }

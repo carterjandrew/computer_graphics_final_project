@@ -1,5 +1,5 @@
 # Example 34
-EXE=ex34
+EXE=finalProject
 
 # Main target
 all: $(EXE)
@@ -25,7 +25,7 @@ CLEAN=rm -f $(EXE) *.o *.a
 endif
 
 # Dependencies
-ex34.o: ex34.c CSCIx229.h
+finalProject.o: finalProject.c CSCIx229.h
 fatal.o: fatal.c CSCIx229.h
 errcheck.o: errcheck.c CSCIx229.h
 print.o: print.c CSCIx229.h
@@ -44,7 +44,7 @@ CSCIx229.a:fatal.o errcheck.o print.o loadtexbmp.o loadobj.o projection.o
 	g++ -c $(CFLG)  $<
 
 #  Link
-ex34:ex34.o   CSCIx229.a
+finalProject:finalProject.o   CSCIx229.a
 	gcc $(CFLG) -o $@ $^  $(LIBS)
 
 #  Clean
