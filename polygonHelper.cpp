@@ -4,9 +4,15 @@ int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2){
     float d1, d2;
     float a1, a2, b1, b2, c1, c2;
 
+    if(e1.x == s2.x && e1.y == s2.y){
+        return 0;
+    }
+    if(e2.x == s1.x && e2.y == s1.y){
+        return 0;
+    }
+
     // Convert vector 1 to a line (line 1) of infinite length.
-    // We want the line in linear equation standard form: A*x + B*y + C = 0
-    // See: http://en.wikipedia.org/wiki/Linear_equation
+    // We want the line in linear equation standard form: A*x + B*y =-C
     a1 = e1.y - s1.y;
     b1 = s1.x - e1.x;
     c1 = (e1.x * s1.y) - (s1.x * e1.y);
@@ -18,7 +24,6 @@ int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2){
     // 2 into the equation above.
     d1 = (a1 * s2.x) + (b1 * s2.y) + c1;
     d2 = (a1 * e2.x) + (b1 * e2.y) + c1;
-
     // If d1 and d2 both have the same sign, they are both on the same side
     // of our line 1 and in that case 0 intersection is possible. Careful, 
     // 0 is a special case, that's why we don't test ">=" and "<=", 
@@ -50,7 +55,7 @@ int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2){
     // means they intersect in any number of points from zero to infinite.
     if ((a1 * b2) - (a2 * b1) == 0.0f) return -1;
 
-    // If they are 0t collinear, they must intersect in exactly one point.
+    // If they are not collinear, they must intersect in exactly one point.
     return 1;
 }
 Point2d make2dPoint(double x, double y){
@@ -60,18 +65,20 @@ Point2d make2dPoint(double x, double y){
     return point;
 }
 Point2d pointOfIntersection(Point2d s1, Point2d e1, Point2d s2, Point2d e2){
-    double a1, a2, b1, b2, c1, c2;
-    double det,x,y;
-    a1 = e1.y - s1.y;
-    b1 = s1.x - e1.x;
-    c1 = a1*s1.x + b1*e1.y;
-    a2 = e2.y - s2.y;
-    b2 = s2.x - e2.x;
-    c2 = a2*s2.x + b2*e2.y;
-    det = a1*b2-a2*b1;
-    if(det == 0) return make2dPoint(DBL_MAX,DBL_MAX);
-    x = (b2*c1 - b1*c2)/det;
-    y = (a1*c2 - a2*c1)/det;
+    double slope1, slope2,x,y;
+    if(e1.x - s1.x != 0)
+        slope1 = (e1.y - s1.y)/(e1.x - s1.x);
+    else
+        slope1 = 0;
+    if(e2.x - s2.x != 0)
+        slope2 = (e2.y - s2.y)/(e2.x - s2.x);
+    else
+        slope1 = 0;
+    if(slope1 != slope2)
+    {
+        x = ((s1.x*e1.y - s1.y*e1.x)*(s2.x - e2.x) - (s2.x*e2.y - s2.y*e2.x)*(s1.x - e1.x) )/( ((s1.x - e1.x)*(s2.y - e2.y))- ((s1.y - e1.y)*(s2.x - e2.x)));
+        y = ((s1.x*e1.y - s1.y*e1.x)*(s2.y - e2.y) - (s2.x*e2.y - s2.y*e2.x)*(s1.y - e1.y) )/( ((s1.x - e1.x)*(s2.y - e2.y))- ((s1.y - e1.y)*(s2.x - e2.x)));
+    }
     return make2dPoint(x,y);
 }
 
