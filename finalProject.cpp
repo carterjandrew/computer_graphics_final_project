@@ -1,4 +1,3 @@
-#include <vector>
 #include "CSCIx229.h"
 int width  = 1; //  Window width
 int height = 1; //  Window height
@@ -8,9 +7,10 @@ double asp = 1; //  Window aspect ratio
 #define NMAX  8 //  Maximum number of vertecies to render house
 #define PLOTMIN 20 // Minimum land plot size
 #define PLOTMAX 70 // Maxium land plot size
-int n=0;        //  Number of nodes making up land plot
 int move=-1;    //  Point2d getting moved
-Point2d P[NMAX];  //  Data Point2ds
+Polygon P;      //  Data Point2ds
+int loopDir = 0;
+int validShape = 0;
 //Display mode 0: edit plot of house
 //Display mode 1: View house from exterior
 //Display mode 2: First person view mode
@@ -19,6 +19,7 @@ int mode=0;     //  Display mode
 int dimMin = 20;//  Minimum plot size
 int dimMax = 200;// Maxiumum plot size
 int dim = 20;     //  Scale of world
+int invalidGeneration = 1;
 //3D House construction components
 
 
@@ -37,8 +38,8 @@ Point2d Mouse2World(int x,int y)
  */
 double Distance(Point2d p,int k)
 {
-   double dx = p.x - P[k].x;
-   double dy = p.y - P[k].y;
+   double dx = p.x - P.points[k].x;
+   double dy = p.y - P.points[k].y;
    return sqrt(dx*dx+dy*dy);
 }
 /*
@@ -48,7 +49,7 @@ void motion(int x,int y)
 {
    if (move<0) return;
    //  Update Point2d
-   P[move] = Mouse2World(x,y);
+   P.points[move] = Mouse2World(x,y);
    //  Redisplay
    glutPostRedisplay();
 }
@@ -62,24 +63,24 @@ void mouse(int button, int state, int x, int y){
         if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
             int nodeToEdit = -1;
             double dmin = .2*dim;
-            for(int i = 0; i < n; i++){
+            for(int i = 0; i < P.count; i++){
                 double dist = Distance(p,i);
                 if(dist < dmin){
                     nodeToEdit = i;
                     dmin = dist;
                 }
             }
-            if(n < NMAX && nodeToEdit == -1){
-                P[n] = p;
-                move = n;
-                n++;
+            if(P.count < NMAX && nodeToEdit == -1){
+                P.points[P.count] = p;
+                move = P.count;
+                P.count++;
             }else if(nodeToEdit != -1){
                 move = nodeToEdit;
             }
         }else if(button == GLUT_RIGHT_BUTTON && state == GLUT_UP){
             int nodeToDelete = -1;
             double dmin = .05*dim;
-            for(int i = 0; i < n; i++){
+            for(int i = 0; i < P.count; i++){
                 double dist = Distance(p,i);
                 if(dist < dmin){
                     nodeToDelete = i;
@@ -87,13 +88,13 @@ void mouse(int button, int state, int x, int y){
                 }
             }
             if(nodeToDelete != -1){
-                for(int i = nodeToDelete; i < n-1; i++){
-                    P[i] = P[i+1];
+                for(int i = nodeToDelete; i < P.count-1; i++){
+                    P.points[i] = P.points[i+1];
                 }
-                n--;
+                P.count--;
             }
         }else if(button == GLUT_LEFT_BUTTON && state == GLUT_UP){
-            P[move] = p;
+            P.points[move] = p;
             move = -1;
         }
         glutPostRedisplay();
@@ -121,7 +122,7 @@ void key(unsigned char ch, int x, int y){
         switch (ch)
         {
         case 'd':
-            n = 0;
+           P.count = 0;
             break;
         default:
             break;
@@ -153,42 +154,60 @@ void display(){
     glLoadIdentity();
     glRotatef(-90,1,0,0);
     if(mode==0){
+        //Draw grid
         glColor3f(.3,.3,.3);
         glBegin(GL_LINES);
-        for(int i=-dim;i<=dim;i++) {
+        for(int i=-dim;i<=dim;i++){
             glVertex3f(i,0,-dim);
             glVertex3f(i,0,dim);
             glVertex3f(-dim,0,i);
             glVertex3f(dim,0,i);
-        };
+        }
         glEnd();
-        glColor3f(0,1,0);
-        if(move == -1){
-            for(int i = 0; i < n; i++){
-                for(int j = i; j < n; j++){
-                    if(i==j) continue;
-                    if(linesIntersect(P[i%n],P[(i+1)%n],P[(j%n)],P[(j+1)%n]) == 1){ 
-                        glColor3f(1,0,0);
-                        glPointSize(9);
-                        Point2d intersection = pointOfIntersection(P[i%n],P[(i+1)%n],P[(j%n)],P[(j+1)%n]);
-                        glBegin(GL_POINTS);
-                        glVertex3f(intersection.x,0,intersection.y);
-                        glEnd();
-                        glPointSize(1);
-                    }
+        validShape = 1;
+        if(P.count < 3) validShape = 0;
+        glColor3f(1,0,0);
+        for(int i = 0; i < P.count; i++){
+            for(int j = i; j < P.count; j++){
+                if(i==j) continue;
+                if(linesIntersect(P.points[i],P.points[(i+1)%P.count],P.points[j],P.points[(j+1)%P.count])){ 
+                    validShape = 0;
+                    glPointSize(9);
+                    Point2d intersection = pointOfIntersection(P.points[i%P.count],P.points[(i+1)%P.count],P.points[(j%P.count)],P.points[(j+1)%P.count]);
+                    glBegin(GL_POINTS);
+                    glVertex3f(intersection.x,0,intersection.y);
+                    glEnd();
+                    glPointSize(1);
                 }
             }
         }
+        if(validShape) glColor3f(0,1,0);
+        //Draw in and test the direction of the polygon loop
+        if(P.count > 1){
+            Point2d orth = getOrthonorm(P.points[0],P.points[1], loopDir);
+            Point2d lineMean = make2dPoint((P.points[0].x + P.points[1].x)/2,(P.points[0].y + P.points[1].y)/2);
+            Point2d testPoint = make2dPoint(orth.x + lineMean.x, orth.y + lineMean.y);
+            if(raycastPolygon(make2dPoint(100,100), testPoint, P)%2==0)loopDir = !loopDir;
+        }
+        glBegin(GL_LINES);
+        for(int i = 0; i < P.count; i++){
+            Point2d orth = getOrthonorm(P.points[i],P.points[(i+1)%P.count], loopDir);
+            Point2d lineMean = make2dPoint((P.points[i].x + P.points[(i+1)%P.count].x)/2,(P.points[i].y + P.points[(i+1)%P.count].y)/2);
+            Point2d testPoint = make2dPoint(orth.x + lineMean.x, orth.y + lineMean.y);
+            glVertex3d(lineMean.x,0,lineMean.y);
+            glVertex3d(testPoint.x,0,testPoint.y);
+        }
+        glEnd();
         glBegin(GL_LINE_LOOP);
-        for(int i = 0; i < n; i++){
-            glVertex3d(P[i].x,0 ,P[i].y);
+        for(int i = 0; i < P.count; i++){
+            glVertex3d(P.points[i].x,0 ,P.points[i].y);
         }
         glEnd();
         glColor3f(1,1,1);
         glPointSize(7);
         glBegin(GL_POINTS);
-        for(int i = 0; i < n; i++){
-            glVertex3d(P[i].x, 0, P[i].y);
+        for(int i = 0; i < P.count; i++){
+            glVertex3d(P.points[i].x, 0, P.points[i].y);
         }
         glEnd();
         glPointSize(1);
@@ -206,6 +225,7 @@ int main(int argc, char *argv[]){
    //  Initialize GLEW
    if (glewInit()!=GLEW_OK) Fatal("Error initializing GLEW\n");
 #endif
+    P.points = (Point2d*) malloc(sizeof(Point2d) * 8);
     //  Set callbacks
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);

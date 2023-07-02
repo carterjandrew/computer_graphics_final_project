@@ -1,5 +1,17 @@
 #include "CSCIx229.h"
-
+Point2d getOrthonorm(Point2d p1, Point2d p2, int loopDir){
+    double dx, dy, dim;
+    dy = p2.x-p1.x;
+    dx = p2.y-p1.y;
+    dim = sqrtf(dx*dx+dy*dy);
+    dx/=-dim;
+    dy/=dim;
+    if(loopDir){
+        dx=-dx;
+        dy=-dy;
+    }
+    return make2dPoint(dx,dy);
+}
 int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2){
     float d1, d2;
     float a1, a2, b1, b2, c1, c2;
@@ -83,6 +95,24 @@ Point2d pointOfIntersection(Point2d s1, Point2d e1, Point2d s2, Point2d e2){
 }
 
 
-int raycastPolygon(Point2d dest, Point2d* polygon, int polygonSize){
-    return 0;
+int raycastPolygon(Point2d start, Point2d dest, Polygon polygon){
+    int collisionCount = 0;
+    for(int i = 0; i < polygon.count; i++){
+        if(linesIntersect(start, dest, polygon.points[i], polygon.points[(i+1)%polygon.count])) collisionCount++;
+    }
+    return collisionCount;
+}
+Polygon* addNewRoom(Polygon* rem, int poi, double height){
+    //First build the polygon that we want to make a room with
+    //Find the ortogonal vector to our line
+    double dx, dy, mag;
+    dy = rem->points[(poi+1)%rem->count].x - rem->points[poi].x;
+    dx = rem->points[(poi+1)%rem->count].y - rem->points[poi].y;
+    mag = sqrtf(dx*dx+dy*dy);
+    dx/=mag;
+    dy/=mag;
+    Polygon* room = (Polygon*)malloc(sizeof(Polygon));
+    room->points = (Point2d*)malloc(sizeof(Point2d) * 4);
+    room->points[0] = rem->points[poi];
+    room->points[1] = rem->points[poi+1];
 }

@@ -60,7 +60,12 @@ void ErrCheck(const char* where);
 int  LoadOBJ(const char* file);
 typedef struct {double x,y,z;} Point3d;
 typedef struct {double x,y;} Point2d;
-int raycastPolygon(Point2d dest, Point2d* polygon, int polygonSize);
+typedef struct {int count; char type; Point2d* points;} Polygon;
+typedef struct {Polygon polygon; int expansionDir;} Wall;
+typedef struct {Point2d start, end;} Line;
+Point2d make2dPoint(double x, double y);
+Point2d getOrthonorm(Point2d p1, Point2d p2, int loopDir);
+int raycastPolygon(Point2d start, Point2d dest, Polygon polygon);
 int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2);
 Point2d pointOfIntersection(Point2d s1, Point2d e1, Point2d s2, Point2d e2);
 #ifdef __cplusplus
