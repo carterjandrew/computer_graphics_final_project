@@ -25,14 +25,14 @@ CLEAN=rm -f $(EXE) *.o *.a
 endif
 
 # Dependencies
-finalProject.o: finalProject.cpp CSCIx229.h
+finalProject.o: finalProject.c CSCIx229.h
 fatal.o: fatal.c CSCIx229.h
 errcheck.o: errcheck.c CSCIx229.h
 print.o: print.c CSCIx229.h
 loadtexbmp.o: loadtexbmp.c CSCIx229.h
 loadobj.o: loadobj.c CSCIx229.h
 projection.o: projection.c CSCIx229.h
-polygonHelper.o: polygonHelper.cpp CSCIx229.h
+polygonHelper.o: polygonHelper.c CSCIx229.h
 #  Create archive
 CSCIx229.a:fatal.o errcheck.o print.o loadtexbmp.o loadobj.o projection.o polygonHelper.o
 	ar -rcs $@ $^
