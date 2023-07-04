@@ -318,6 +318,12 @@ void display(){
         glColor3f(1,1,1);
         glBegin(GL_QUADS);
         for(int i = 0; i < FP.length; i++){
+            if(FP.spaces[i].type == 'c'){
+                glVertex3d(FP.spaces[i].points[0].x, FP.spaces[i].floor*5, FP.spaces[i].points[0].y);
+                glVertex3d(FP.spaces[i].points[1].x, FP.spaces[i].floor*5, FP.spaces[i].points[1].y);
+                glVertex3d(FP.spaces[i].points[2].x, FP.spaces[i].floor*5, FP.spaces[i].points[2].y);
+                glVertex3d(FP.spaces[i].points[3].x, FP.spaces[i].floor*5, FP.spaces[i].points[3].y);
+            }
             for(int p = 0; p < FP.spaces[i].count; p++){
                 if(FP.spaces[i].type == 's'){   
                     Point2d normal = getOrthonorm(FP.spaces[i].points[p], FP.spaces[i].points[(p+1)%FP.spaces[i].count], !loopDir);

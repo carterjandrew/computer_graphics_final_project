@@ -96,8 +96,30 @@ Polygon makeSpace(Point2d p1, Point2d p2, int loopDir, int depth){
 }
 FloorPlan buildHouse(Polygon space, double maxRoomDim, int loopDir, int floors){
     FloorPlan plan;
-    plan.spaces = malloc(sizeof* plan.spaces * floors * 2);
+    plan.spaces = malloc(sizeof* plan.spaces * floors * 5);
     for(int i = 0; i < floors; i++){
+        if(1){
+            int line = rand()%space.count;
+            float r1 = (float)rand()/(float)(RAND_MAX);
+            float r2 = (float)rand()/(float)(RAND_MAX);
+            Point2d dir1 = getDir(space.points[line], space.points[(line+1)%space.count]);
+            Point2d dir2 = getDir(space.points[(line+1)%space.count], space.points[(line+2)%space.count]);
+            Point2d p1 = make2dPoint(space.points[line].x + (dir1.y * r1), space.points[line].y + (dir1.y * r1));
+            Point2d p3 = make2dPoint(space.points[(line+1)%space.count].x + (dir2.x * r2), space.points[(line+1)%space.count].y + (dir2.y * r2));
+            Point2d orth1 = getOrthonorm(space.points[line], space.points[(line+1)%space.count], loopDir);
+            Point2d orth2 = getOrthonorm(space.points[(line+1)%space.count], space.points[(line+2)%space.count], loopDir);
+            Point2d p2 = make2dPoint(p1.x + (orth1.x * 200), p1.y + (orth1.y * 200));
+            Point2d p4 = make2dPoint(p2.x + (orth2.x * 200), p2.y + (orth2.y * 200));
+            Point2d intersect = pointOfIntersection(p1,p2,p3,p4);
+            plan.spaces[plan.length].count = 4;
+            plan.spaces[plan.length].points = malloc(sizeof * plan.spaces[plan.length].points * 4);
+            plan.spaces[plan.length].type = 'c';
+            plan.spaces[plan.length].points[0] = p1;
+            plan.spaces[plan.length].points[1] = space.points[(line+1)%space.count];
+            plan.spaces[plan.length].points[2] = p2;
+            plan.spaces[plan.length].points[3] = intersect;
+            plan.length++;
+        }
         plan.spaces[plan.length] = space;
         plan.spaces[plan.length].type='s';
         plan.spaces[plan.length].floor=i;
