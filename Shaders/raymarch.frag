@@ -1,14 +1,26 @@
 #version 330 core
 layout (location = 0) out vec4 fragColor;
 
-uniform vec2 u_resolution;
-uniform vec2 u_mouse;
-uniform float u_time;
+precision highp float;
+uniform vec2 u_resolution; // Width & height of the shader
+uniform float u_time; // Time elapsed
+uniform vec3 u_cam; //Camera position
+ 
+// Constants
+#define PI 3.1415925359
+#define TWO_PI 6.2831852
+#define MAX_STEPS 100 // Mar Raymarching steps
+#define MAX_DIST 100. // Max Raymarching distance
+#define SURF_DIST .01 // Surface Distance
 
-const float FOV = 1.0;
-const int MAX_STEPS = 256;
-const float MAX_DIST = 200;
-const float EPSILON = 0.001;
+
+
+
+
+
+
+
+
 
 
 
@@ -23,7 +35,6 @@ const float EPSILON = 0.001;
 //
 ////////////////////////////////////////////////////////////////
 
-#define PI 3.14159265
 #define TAU (2*PI)
 #define PHI (sqrt(5)*0.5 + 0.5)
 
@@ -683,41 +694,42 @@ float fOpTongue(float a, float b, float ra, float rb) {
 
 
 
-
-
-
-
-
-float fDisplace(vec3 p) {
+float displacePixel(vec3 p) {
     pR(p.yz, sin(2.0 * u_time));
     return (sin(p.x + 4.0 * u_time) * sin(p.y + sin(2.0 * u_time)) * sin(p.z + 6.0 * u_time));
 }
 
-vec2 fOpUnionID(vec2 res1, vec2 res2) {
+vec2 unionOnID(vec2 res1, vec2 res2) {
     return (res1.x < res2.x) ? res1 : res2;
 }
 
-vec2 fOpDifferenceID(vec2 res1, vec2 res2) {
+vec2 differenceOnID(vec2 res1, vec2 res2) {
     return (res1.x > -res2.x) ? res1 : vec2(-res2.x, res2.y);
 }
 
-vec2 fOpDifferenceColumnsID(vec2 res1, vec2 res2, float r, float n) {
+vec2 differenceColsID(vec2 res1, vec2 res2, float r, float n) {
     float dist = fOpDifferenceColumns(res1.x, res2.x, r, n);
     return (res1.x > -res2.x) ? vec2(dist, res1.y) : vec2(dist, res2.y);
 }
 
-vec2 fOpUnionStairsID(vec2 res1, vec2 res2, float r, float n) {
+vec2 differenceStairsID(vec2 res1, vec2 res2, float r, float n) {
     float dist = fOpUnionStairs(res1.x, res2.x, r, n);
     return (res1.x < res2.x) ? vec2(dist, res1.y) : vec2(dist, res2.y);
 }
 
-vec2 fOpUnionChamferID(vec2 res1, vec2 res2, float r) {
+vec2 unionChamferID(vec2 res1, vec2 res2, float r) {
     float dist = fOpUnionChamfer(res1.x, res2.x, r);
     return (res1.x < res2.x) ? vec2(dist, res1.y) : vec2(dist, res2.y);
 }
 
-vec2 map(vec3 p) {
-    // plane
+
+
+
+
+//Takes in pixel and outputs a distance and ID of object
+float GetDist(vec3 p) 
+{
+  // plane
     float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
     float planeID = 2.0;
     vec2 plane = vec2(planeDist, planeID);
@@ -732,21 +744,13 @@ vec2 map(vec3 p) {
     // sphere
     vec3 ps = p + 0.2;
     ps.y -= 8;
-    float sphereDist = fSphere(ps, 13.0 + fDisplace(p));
+    float sphereDist = fSphere(ps, 13.0 + displacePixel(p));
     float sphereID = 1.0;
     vec2 sphere = vec2(sphereDist, sphereID);
     // manipulation operators
     pMirrorOctant(p.xz, vec2(50, 50));
     p.x = -abs(p.x) + 20;
     pMod1(p.z, 15);
-    // roof
-    vec3 pr = p;
-    pr.y -= 15.7;
-    pR(pr.xy, 0.6);
-    pr.x -= 18.0;
-    float roofDist = fBox2Cheap(pr.xy, vec2(20, 0.5));
-    float roofID = 4.0;
-    vec2 roof = vec2(roofDist, roofID);
     // box
     float boxDist = fBoxCheap(p, vec3(3,9,4));
     float boxID = 3.0;
@@ -757,114 +761,81 @@ vec2 map(vec3 p) {
     float cylinderDist = fCylinder(pc.yxz, 4, 3);
     float cylinderID = 3.0;
     vec2 cylinder = vec2(cylinderDist, cylinderID);
-    // wall
-    float wallDist = fBox2Cheap(p.xy, vec2(1, 15));
-    float wallID = 3.0;
-    vec2 wall = vec2(wallDist, wallID);
     // result
     vec2 res;
-//    res = wall;
-    res = fOpUnionID(box, cylinder);
-    res = fOpDifferenceColumnsID(wall, res, 0.6, 3.0);
-    res = fOpUnionChamferID(res, roof, 0.6);
-    res = fOpUnionStairsID(res, plane, 4.0, 5.0);
-    res = fOpUnionID(res, sphere);
-    res = fOpUnionID(res, torus);
-    return res;
+    //    res = wall;
+    res = unionOnID(box, cylinder);
+    res = differenceStairsID(res, plane, 4.0, 5.0);
+    res = unionOnID(res, sphere);
+    res = unionOnID(res, torus);
+    return res.x;
 }
-
-vec2 rayMarch(vec3 ro, vec3 rd) {
-    vec2 hit, object;
-    for (int i = 0; i < MAX_STEPS; i++) {
-        vec3 p = ro + object.x * rd;
-        hit = map(p);
-        object.x += hit.x;
-        object.y = hit.y;
-        if (abs(hit.x) < EPSILON || object.x > MAX_DIST) break;
-    }
-    return object;
+ 
+float RayMarch(vec3 ro, vec3 rd) 
+{
+  float dO = 0.; //Distane Origin
+  for(int i=0;i<MAX_STEPS;i++)
+  {
+    vec3 p = ro + rd * dO;
+    float ds = GetDist(p); // ds is Distance Scene
+    dO += ds;
+    if(dO > MAX_DIST || ds < SURF_DIST) 
+      break;
+  }
+  return dO;
 }
-
-vec3 getNormal(vec3 p) {
-    vec2 e = vec2(EPSILON, 0.0);
-    vec3 n = vec3(map(p).x) - vec3(map(p - e.xyy).x, map(p - e.yxy).x, map(p - e.yyx).x);
+ 
+vec3 GetNormal(vec3 p)
+{ 
+    float d = GetDist(p); // Distance
+    vec2 e = vec2(.01,0); // Epsilon
+    vec3 n = d - vec3(
+    GetDist(p-e.xyy),
+    GetDist(p-e.yxy),
+    GetDist(p-e.yyx));
+ 
     return normalize(n);
 }
-
-vec3 getLight(vec3 p, vec3 rd, vec3 color) {
-    vec3 lightPos = vec3(10.0, 55.0, -20.0);
-    vec3 L = normalize(lightPos - p);
-    vec3 N = getNormal(p);
-    vec3 V = -rd;
-    vec3 R = reflect(-L, N);
-
-    vec3 specColor = vec3(0.5);
-    vec3 specular = specColor * pow(clamp(dot(R, V), 0.0, 1.0), 10.0);
-    vec3 diffuse = color * clamp(dot(L, N), 0.0, 1.0);
-    vec3 ambient = color * 0.05;
-    vec3 fresnel = 0.25 * color * pow(1.0 + dot(rd, N), 3.0);
-
-    // shadows
-    float d = rayMarch(p + N * 0.02, normalize(lightPos)).x;
-    if (d < length(lightPos - p)) return ambient + fresnel;
-
-    return diffuse + ambient + specular + fresnel;
+float GetLight(vec3 p)
+{ 
+    // Directional light
+    vec3 lightPos = vec3(5.*sin(u_time),5.,5.0*cos(u_time)); // Light Position
+    vec3 l = normalize(lightPos-p); // Light Vector
+    vec3 n = GetNormal(p); // Normal Vector
+   
+    float dif = dot(n,l); // Diffuse light
+    dif = clamp(dif,0.,1.); // Clamp so it doesnt go below 0
+   
+    // Shadows
+    float d = RayMarch(p+n*SURF_DIST*2., l); 
+     
+    if(d<length(lightPos-p)) dif *= .1;
+ 
+    return dif;
 }
-
-vec3 getMaterial(vec3 p, float id) {
-    vec3 m;
-    switch (int(id)) {
-        case 1:
-        m = vec3(0.9, 0.0, 0.0); break;
-        case 2:
-        m = vec3(0.2 + 0.4 * mod(floor(p.x) + floor(p.z), 2.0)); break;
-        case 3:
-        m = vec3(0.7, 0.8, 0.9); break;
-        case 4:
-        vec2 i = step(fract(0.5 * p.xz), vec2(1.0 / 10.0));
-        m = ((1.0 - i.x) * (1.0 - i.y)) * vec3(0.37, 0.12, 0.0); break;
-    }
-    return m;
-}
-
 mat3 getCam(vec3 ro, vec3 lookAt) {
     vec3 camF = normalize(vec3(lookAt - ro));
     vec3 camR = normalize(cross(vec3(0, 1, 0), camF));
     vec3 camU = cross(camF, camR);
     return mat3(camR, camU, camF);
 }
-
-void mouseControl(inout vec3 ro) {
-    vec2 m = u_mouse / u_resolution;
-    pR(ro.yz, m.y * PI * 0.4 - 0.4);
-    pR(ro.xz, m.x * TAU);
-}
-
-void render(inout vec3 col, in vec2 uv) {
-    vec3 ro = vec3(36.0, 19.0, -36.0);
-
-    vec3 lookAt = vec3(0, 0, 0);
-    vec3 rd = getCam(ro, lookAt) * normalize(vec3(uv, FOV));
-
-    vec2 object = rayMarch(ro, rd);
-
-    vec3 background = vec3(0.5, 0.8, 0.9);
-    if (object.x < MAX_DIST) {
-        vec3 p = ro + object.x * rd;
-        vec3 material = getMaterial(p, object.y);
-        col += getLight(p, rd, material);
-        // fog
-        col = mix(col, background, 1.0 - exp(-0.00002 * object.x * object.x));
-    } else {
-        col += background - max(0.9 * rd.y, 0.0);
-    }
-}
-
-void main() {
-    vec2 uv = gl_FragCoord.xy/u_resolution.xy;
-
-    vec3 col = vec3(0,0,0);
-    render(col, uv);
-
-    fragColor = vec4(col, 1.0);
+ 
+void main()
+{
+    vec2 uv = (gl_FragCoord.xy-.5*u_resolution.xy)/u_resolution.y;
+     
+    vec3 ro = vec3(u_cam); // Ray Origin/Camera
+    vec3 rd = getCam(ro, vec3(0,1,0)) * normalize(vec3(uv, 1));//Ray direction projection matrix
+   
+    float d = RayMarch(ro,rd); // Distance
+   
+    vec3 p = ro + rd * d;
+    float dif = GetLight(p); // Diffuse lighting
+    d*= .2;
+    vec3 color = vec3(dif);
+    //color += GetNormal(p);
+    //float color = GetLight(p);
+ 
+    // Set the output color
+    gl_FragColor = vec4(color,1.0);
 }

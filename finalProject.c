@@ -1,35 +1,12 @@
 /*
- *  Shaders - OpenGL2 Style
- *
- *  Demonstrate shaders:
- *    Simple shaders
- *    Vertex lighting
- *    Procedural textures
- *    Toon shader
- *    Pixel lighting
- *    Texture lookup
- *    Pixel lighting with texture
- *
- *  Key bindings:
- *  m/M        Cycle through shaders
- *  x/X        Increase/decrease mandelbrot X-value
- *  y/Y        Increase/decrease mandelbrot Y-value
- *  z/Z        Zoom in/out of mandelbrot
- *  o/O        Cycle through objects
- *  p/P        Toggle between orthogonal & perspective projections
- *  s/S        Start/stop light movement
- *  -/+        Decrease/increase light elevation
- *  a          Toggle axes
- *  arrows     Change view angle
- *  PgDn/PgUp  Zoom in and out
- *  0          Reset view angle
- *  ESC        Exit
  */
 #include "CSCIx229.h"
+#define GL_FRAGMENT_PRECISION_HIGH 1
 int shader = 0;
 int screen[] = {600,600};
-
-
+int th=0;         //  Azimuth of view angle
+int ph=0;         //  Elevation of view angle
+float dim = 50;
 
 /*
  *  Read text file
@@ -144,10 +121,42 @@ void reshape(int width,int height)
    screen[1] = height;
 }
 
+void special(int key,int x,int y)
+{
+   //  Right arrow key - increase angle by 5 degrees
+   if (key == GLUT_KEY_RIGHT)
+      th += 5;
+   //  Left arrow key - decrease angle by 5 degrees
+   else if (key == GLUT_KEY_LEFT)
+      th -= 5;
+   //  Up arrow key - increase elevation by 5 degrees
+   else if (key == GLUT_KEY_UP)
+      ph += 5;
+   //  Down arrow key - decrease elevation by 5 degrees
+   else if (key == GLUT_KEY_DOWN)
+      ph -= 5;
+   //  PageUp key - increase dim
+   else if (key == GLUT_KEY_PAGE_DOWN)
+      dim += 0.1;
+   //  PageDown key - decrease dim
+   else if (key == GLUT_KEY_PAGE_UP && dim>1)
+      dim -= 0.1;
+   //  Keep angles to +/-360 degrees
+   th %= 360;
+   ph %= 360;
+   //  Tell GLUT it is necessary to redisplay the scene
+   glutPostRedisplay();
+}
+
 void display(){
    glClear(GL_COLOR_BUFFER_BIT);
+   float Ex = +2*dim*Sin(th)*Cos(ph);
+   float Ey = +2*dim        *Sin(ph);
+   float Ez = -2*dim*Cos(th)*Cos(ph);
    glUseProgram(shader);
    glUniform2f(glGetUniformLocation(shader,"u_resolution"), (float)screen[0],(float)screen[1]);
+   glUniform1f(glGetUniformLocation(shader, "u_time"), .0005 * glutGet(GLUT_ELAPSED_TIME));
+   glUniform3f(glGetUniformLocation(shader, "u_cam"), Ex, Ey + 1, Ez);
    glColor3f(1,1,1);
    glBegin(GL_QUADS);
    glVertex2d(-1,-1);
@@ -160,15 +169,19 @@ void display(){
    glFlush();
    glutSwapBuffers();
 }
-
+void idle(){
+   glutPostRedisplay();
+}
 int main(int argc,char* argv[])
 {
    //  Initialize GLUT
    glutInit(&argc,argv);
    //  Request double buffered, true color window with Z buffering at 600x600
    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-   glutInitWindowSize(600,600);
-   glutCreateWindow("Shaders");
+   glutInitWindowSize(800,600);
+   screen[0] = 800;
+   screen[1] = 600;
+   glutCreateWindow("Andrew_Carter_Final_Project_RayMarching");
 #ifdef USEGLEW
    //  Initialize GLEW
    if (glewInit()!=GLEW_OK) Fatal("Error initializing GLEW\n");
@@ -176,6 +189,8 @@ int main(int argc,char* argv[])
    //  Set callbacks
    glutReshapeFunc(reshape);
    glutDisplayFunc(display);
+   glutIdleFunc(idle);
+   glutSpecialFunc(special);
    //  Create Shader Programs
    shader = CreateShaderProg("Shaders/raymarch.vert", "Shaders/raymarch.frag");
    //  Pass control to GLUT so it can interact with the user
