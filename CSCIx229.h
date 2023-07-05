@@ -67,6 +67,7 @@ typedef struct {Polygon* spaces; int length;} FloorPlan;
 Point2d make2dPoint(double x, double y);
 Point2d getOrthonorm(Point2d p1, Point2d p2, int loopDir);
 FloorPlan buildHouse(Polygon space, double maxRoomDim, int loopDir, int floors);
+Polygon buildRoom(Polygon cutout, int line, float r1, float r2, int loopDir);
 int raycastPolygon(Point2d start, Point2d dest, Polygon polygon);
 int linesIntersect(Point2d s1, Point2d e1, Point2d s2, Point2d e2);
 Point2d pointOfIntersection(Point2d s1, Point2d e1, Point2d s2, Point2d e2);

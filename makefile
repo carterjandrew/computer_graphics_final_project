@@ -32,9 +32,8 @@ print.o: print.c CSCIx229.h
 loadtexbmp.o: loadtexbmp.c CSCIx229.h
 loadobj.o: loadobj.c CSCIx229.h
 projection.o: projection.c CSCIx229.h
-polygonHelper.o: polygonHelper.c CSCIx229.h
 #  Create archive
-CSCIx229.a:fatal.o errcheck.o print.o loadtexbmp.o loadobj.o projection.o polygonHelper.o
+CSCIx229.a:fatal.o errcheck.o print.o loadtexbmp.o loadobj.o projection.o
 	ar -rcs $@ $^
 
 # Compile rules
