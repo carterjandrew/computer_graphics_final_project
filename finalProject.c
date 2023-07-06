@@ -1,4 +1,5 @@
-/*
+/*Carter Andrew
+   Check the readme for controls
  */
 #include "CSCIx229.h"
 #define GL_FRAGMENT_PRECISION_HIGH 1

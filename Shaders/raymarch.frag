@@ -5,9 +5,9 @@ precision highp float;
 uniform vec2 u_resolution; // Width & height of the shader
 uniform float u_time; // Time elapsed
 uniform vec3 u_cam; //Camera position
-uniform int u_mode;
-uniform int u_display;
-uniform int u_fun;
+uniform int u_mode;//Scene mode
+uniform int u_display;//Display mode
+uniform int u_fun;//Enable fog
 
  
 // Constants
@@ -697,19 +697,20 @@ float fOpTongue(float a, float b, float ra, float rb) {
 
 
 
-
+//Function that offsets pixels according to time
 float displacePixel(vec3 p) {
     pR(p.yz, sin(2.0 * u_time));
     return (sin(p.x + 4.0 * u_time) * sin(p.y + sin(2.0 * u_time)) * sin(p.z + 6.0 * u_time));
 }
-
+//Function that gives the union of both objects in pixel space, simply rendering the closer object. Returns ID as well
 vec2 unionOnID(vec2 res1, vec2 res2) {
     return (res1.x < res2.x) ? res1 : res2;
 }
-
+//Function to subtract the first polygon from the second polygon, renders first polygon if it is closer or the back of second if that is
 vec2 differenceOnID(vec2 res1, vec2 res2) {
     return (res1.x > -res2.x) ? res1 : vec2(-res2.x, res2.y);
-}
+}//This works by finding a value between 0 and 1 detailing how close the two objects are to intersecting at a pixel.
+//Return a blend of the vectors scaled by h and k
 vec2 smoothOnID(vec2 res1, vec2 res2, float k){
 	float h = clamp(0.5 + 0.5*(res1.x-res2.x)/k, 0., 1.);
   	return vec2(mix(res1.x, res2.x, h) - k*h*(1.-h), res1.y); 
@@ -719,53 +720,60 @@ vec2 smoothOnID(vec2 res1, vec2 res2, float k){
 
 
 
-
+//Function that maps all our distances to the differnt objects in scene
+//Take in all pixel projection vectors through p
 vec2 GetDist(vec3 p) 
 {
 	if(u_mode == 0){
-		//plane
+		//Setup plane first
 		float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
 		float planeID = 2.0;
 		vec2 plane = vec2(planeDist, planeID);
-		// sphere
+		// Make a sphere that repeats. By using mod on our pixel we can change where the projection is aiming for this pixel
+		// This makes it hit our sphere in all dimesions infinitely, making a cool, efficient, memoryless repition
 		vec3 ps = mod(p,10) - 10 * .5;
 		float sphereDist = fSphere(ps, 2);
 		float sphereID = 1.0;
 		vec2 sphere = vec2(sphereDist, sphereID);
-		vec2 res;
+		vec2 res;//Our result we use to preform all boolean style operations on
+		//Simply display both of the itemtypes. They do not interact
 		res = unionOnID(sphere, plane);
 		return res;
 	}else if(u_mode == 1){
-		//plane
+		//Make the same plane. We will use this for all our scenes as a grounding characteristic
 		float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
 		float planeID = 2.0;
 		vec2 plane = vec2(planeDist, planeID);
-		// spheres
+		//Make two spheres that we will subtract from each other. They will use u_time to change position
 		float sphereID = 4.0;
 		vec2 s1 = vec2(length(p - vec3(5 * sin(u_time * 5),5,0)) - 5, sphereID);
 		vec2 s2 = vec2(length(p - vec3(0,5,-3))-5, sphereID);
 		vec2 res;
+		//We use the difference function to find the difference in our res, this includes one of our spheres, and the ground, but it never intersects with that
 		res = unionOnID(plane, s1);
 		res = differenceOnID(res, s2);
 		return res;
 	}else if(u_mode == 2){
-		//plane
+		//plane again
 		float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
 		float planeID = 2.0;
 		vec2 plane = vec2(planeDist, planeID);
-		float mixID = 3.0;
-		//torus
+		float mixID = 3.0;//Use this for all our items we blend with, we do not have support for blending materials atm.
+		//Use the built in function to make some tauruses
 		vec3 pt = p;
+		//Use these helper functions to rotate taurus
 		pR(pt.yx, 4.0 * u_time);
 		pR(pt.yz, 0.3 * u_time);
 		vec2 torus1 = vec2(fTorus(pt, 0.2, 8.5), mixID);
 		pR(pt.yx, 2.0 * u_time);
 		pR(pt.xz, 3.0 * u_time);
 		vec2 torus2 = vec2(fTorus(pt, 0.2, 8.5), mixID);
+		//make a sphere, a blob thing, and a cube(or box)
 		vec2 sphere = vec2(length(p - vec3(0,0,0)) - 6, mixID);
 		vec2 box = vec2(fBoxCheap(p,vec3(5)), mixID);
 		vec2 blob = vec2(fBlob(pt), mixID);
 		vec2 res;
+		//Cut out holes in box, then blend that with tauruses. Then add blob and plane to scene
 		res = differenceOnID(box, sphere);
 		res = smoothOnID(res, torus1, 3);
 		res = smoothOnID(res, torus2, 3);
@@ -774,22 +782,24 @@ vec2 GetDist(vec3 p)
 		return res;
 	}
 }
- 
+ //Algorithm for ray marching
 vec2 RayMarch(vec3 ro, vec3 rd) 
 {
-  vec2 object = vec2(0,0); //Distane Origin
-  for(int i=0;i<MAX_STEPS;i++)
+  vec2 object = vec2(0,0); //Made to hold both the distance too and the object we hit with the ray cast
+  for(int i=0;i<MAX_STEPS;i++)//We need a loop to iterate over each 'safe' step we can take
   {
-    vec3 p = ro + rd * object.x;
-    vec2 o = GetDist(p); // ds is Distance Scene
-    object.x += o.x;
-	object.y = o.y;
-    if(object.x > MAX_DIST || o.x < SURF_DIST) 
+    vec3 p = ro + rd * object.x;//Find the starting point of each pixels current step
+    vec2 o = GetDist(p); // find our next step, aka dist to closest objects point
+    object.x += o.x;//Add our safe distance to our total distance
+	object.y = o.y;//Make our closest object the most recent closest
+    if(object.x > MAX_DIST || o.x < SURF_DIST) //Break if we hit an object or missed everything
       break;
   }
   return object;
 }
  
+ //To get the normal we find the difference of our ray collision point and an offset of our pixel in each direction
+ //The larger epsilon becomes the more likely we hit a different object and find odd normals
 vec3 GetNormal(vec3 p)
 { 
     float d = GetDist(p).x; // Distance
@@ -798,28 +808,31 @@ vec3 GetNormal(vec3 p)
     (GetDist(p-e.xyy).x),
     (GetDist(p-e.yxy).x),
     (GetDist(p-e.yyx)).x);
- 
+	//And of course it wouldnt be a normal without norms
     return normalize(n);
 }
+//Now we do some pretty standard lighting given normals and light direction
 float GetLight(vec3 p)
 { 
-    // Directional light
+    // Directional light only pointed in our pixel ray directions, just from a different source
     vec3 lightPos = vec3(20.*sin(u_time),20.,20.0*cos(u_time)); // Light Position
     vec3 l = normalize(lightPos-p); // Light Vector
     vec3 n = GetNormal(p); // Normal Vector
-   
+
     float dif = dot(n,l); // Diffuse light
     dif = clamp(dif,0.,1.); // Clamp so it doesnt go below 0
    
-    // Shadows
+    // Shadows are done by projecting from lighting position and checking where the rays don't hit, then modifying those values
     float d = RayMarch(p+n*SURF_DIST*2., l).x; 
-     
+     //Actual modification
     if(d<length(lightPos-p)) dif *= .1;
  
     return dif + .1;
 }
+//Basically return colors mapped to the objects points. Because we pass in world coordinate distances it's easy to map
 vec3 getMaterial(vec3 p, float id) {
     vec3 m;
+	//All these 'textures' came from source linked in sources
     switch (int(id)) {
         case 1:
         m = vec3(0.7, 0.1, 0.0); break;
@@ -835,7 +848,9 @@ vec3 getMaterial(vec3 p, float id) {
     }
     return m;
 }
-mat3 getCam(vec3 ro, vec3 lookAt) {
+//This does a 'look at function' and returns only the three matricies we need to find our camera rotation
+//Built from online sources and in class slides
+mat3 makeProjectionMatrix(vec3 ro, vec3 lookAt) {
     vec3 camF = normalize(vec3(lookAt - ro));
     vec3 camR = normalize(cross(vec3(0, 1, 0), camF));
     vec3 camU = cross(camF, camR);
@@ -844,23 +859,30 @@ mat3 getCam(vec3 ro, vec3 lookAt) {
  
 void main()
 {
+	//First off we make some uv coords for the quad we are rending to
     vec2 uv = (gl_FragCoord.xy-.5*u_resolution.xy)/u_resolution.y;
-     
-    vec3 ro = vec3(u_cam); // Ray Origin/Camera
-    vec3 rd = getCam(ro, vec3(0,1,0)) * normalize(vec3(uv, 1));//Ray direction projection matrix
-   
+    //Set up out camera projection
+    vec3 ro = u_cam; // Ray Origin/Camera
+    vec3 rd = makeProjectionMatrix(ro, vec3(0,1,0)) * normalize(vec3(uv, 1));//Ray direction projection matrix
+	// Do ray marching to get object coords
     vec2 object = RayMarch(ro,rd); // Distance
-   
+	//We make a black background color to fade to via rlly simple fog calulation
 	vec3 background = vec3(0, 0, 0);
+	//Color is what we will output
 	vec3 color;
-    if (object.x < MAX_DIST || u_fun==1){
+	//Only render objects in range, unless fun is enables
+    if ((object.x < MAX_DIST || u_fun==1) && u_display == 0){
+		//Calculate lighting and materials and mix them together
 		vec3 p = ro + rd * object.x;
 		float dif = GetLight(p); // Diffuse lighting
 		color= mix(vec3(dif), getMaterial(p,object.y),.5);
+		//Calculate fog
 		if(u_fun==0)color = mix(color, background, (object.x/MAX_DIST));
 	}else{
+		//Just set background black
 		color = background;
 	}
+	//Render normals instead if we want those
     if(u_display==1) color = GetNormal(ro + rd * object.x);
     //float color = GetLight(p);
  
