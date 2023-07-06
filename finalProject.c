@@ -6,7 +6,15 @@ int shader = 0;
 int screen[] = {600,600};
 int th=0;         //  Azimuth of view angle
 int ph=0;         //  Elevation of view angle
-float dim = 50;
+float dim = 20;
+int mode = 2;
+int dMode = 0;
+int time = 1;
+int fun = 0;
+int maxDist = 100;
+int maxSteps = 100;
+float surfDist = .05;
+const char* modes[] = {"Repitition", "Subtraction", "Smooth Union"};
 
 /*
  *  Read text file
@@ -137,15 +145,34 @@ void special(int key,int x,int y)
       ph -= 5;
    //  PageUp key - increase dim
    else if (key == GLUT_KEY_PAGE_DOWN)
-      dim += 0.1;
+      dim += 1;
    //  PageDown key - decrease dim
    else if (key == GLUT_KEY_PAGE_UP && dim>1)
-      dim -= 0.1;
+      dim -= 1;
    //  Keep angles to +/-360 degrees
    th %= 360;
    ph %= 360;
    //  Tell GLUT it is necessary to redisplay the scene
    glutPostRedisplay();
+}
+void key(unsigned char ch,int x,int y){
+   switch (ch)
+   {
+   case 'm':
+      mode = (mode+1)%3;
+      break;
+   case 'n':
+      dMode = !dMode;
+      break;
+   case 'p':
+      time = !time;
+      break;
+   case 'f':
+      fun = !fun;
+      break;
+   default:
+      break;
+   }
 }
 
 void display(){
@@ -155,8 +182,14 @@ void display(){
    float Ez = -2*dim*Cos(th)*Cos(ph);
    glUseProgram(shader);
    glUniform2f(glGetUniformLocation(shader,"u_resolution"), (float)screen[0],(float)screen[1]);
-   glUniform1f(glGetUniformLocation(shader, "u_time"), .0005 * glutGet(GLUT_ELAPSED_TIME));
+   if(time)glUniform1f(glGetUniformLocation(shader, "u_time"), .0005 * glutGet(GLUT_ELAPSED_TIME));
    glUniform3f(glGetUniformLocation(shader, "u_cam"), Ex, Ey + 1, Ez);
+   glUniform1i(glGetUniformLocation(shader, "u_mode"), mode);
+   glUniform1i(glGetUniformLocation(shader, "u_display"), dMode);
+   glUniform1i(glGetUniformLocation(shader, "u_fun"), fun);
+   glUniform1i(glGetUniformLocation(shader, "u_maxDist"), maxDist);
+   glUniform1i(glGetUniformLocation(shader, "u_maxSteps"), maxSteps);
+   glUniform1i(glGetUniformLocation(shader, "u_surfDist"), surfDist);
    glColor3f(1,1,1);
    glBegin(GL_QUADS);
    glVertex2d(-1,-1);
@@ -165,6 +198,12 @@ void display(){
    glVertex2d(-1,1);
    glEnd();
    glUseProgram(0);
+   glWindowPos2i(5,85);
+   Print("Angle=%d,%d  Dim=%.1f", th,ph,dim);
+   glWindowPos2i(5,45);
+   Print("View dist=%.1f   View steps=%.1f   Surface detection=%.3f", maxDist,maxSteps,surfDist);
+   glWindowPos2i(5,5);
+   Print("View mode %s  Display mode %s", modes[mode], dMode?"Normals":"Lit and Shaded");
    ErrCheck("display");
    glFlush();
    glutSwapBuffers();
@@ -191,6 +230,7 @@ int main(int argc,char* argv[])
    glutDisplayFunc(display);
    glutIdleFunc(idle);
    glutSpecialFunc(special);
+   glutKeyboardFunc(key);
    //  Create Shader Programs
    shader = CreateShaderProg("Shaders/raymarch.vert", "Shaders/raymarch.frag");
    //  Pass control to GLUT so it can interact with the user

@@ -5,13 +5,17 @@ precision highp float;
 uniform vec2 u_resolution; // Width & height of the shader
 uniform float u_time; // Time elapsed
 uniform vec3 u_cam; //Camera position
+uniform int u_mode;
+uniform int u_display;
+uniform int u_fun;
+
  
 // Constants
 #define PI 3.1415925359
 #define TWO_PI 6.2831852
-#define MAX_STEPS 100 // Mar Raymarching steps
-#define MAX_DIST 100. // Max Raymarching distance
-#define SURF_DIST .01 // Surface Distance
+#define MAX_STEPS 100 // Max Raymarching steps
+#define MAX_DIST 200. // Max Raymarching distance
+#define SURF_DIST .05 // Surface Distance
 
 
 
@@ -706,100 +710,101 @@ vec2 unionOnID(vec2 res1, vec2 res2) {
 vec2 differenceOnID(vec2 res1, vec2 res2) {
     return (res1.x > -res2.x) ? res1 : vec2(-res2.x, res2.y);
 }
-
-vec2 differenceColsID(vec2 res1, vec2 res2, float r, float n) {
-    float dist = fOpDifferenceColumns(res1.x, res2.x, r, n);
-    return (res1.x > -res2.x) ? vec2(dist, res1.y) : vec2(dist, res2.y);
-}
-
-vec2 differenceStairsID(vec2 res1, vec2 res2, float r, float n) {
-    float dist = fOpUnionStairs(res1.x, res2.x, r, n);
-    return (res1.x < res2.x) ? vec2(dist, res1.y) : vec2(dist, res2.y);
-}
-
-vec2 unionChamferID(vec2 res1, vec2 res2, float r) {
-    float dist = fOpUnionChamfer(res1.x, res2.x, r);
-    return (res1.x < res2.x) ? vec2(dist, res1.y) : vec2(dist, res2.y);
+vec2 smoothOnID(vec2 res1, vec2 res2, float k){
+	float h = clamp(0.5 + 0.5*(res1.x-res2.x)/k, 0., 1.);
+  	return vec2(mix(res1.x, res2.x, h) - k*h*(1.-h), res1.y); 
 }
 
 
 
 
 
-//Takes in pixel and outputs a distance and ID of object
-float GetDist(vec3 p) 
+
+vec2 GetDist(vec3 p) 
 {
-  // plane
-    float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
-    float planeID = 2.0;
-    vec2 plane = vec2(planeDist, planeID);
-    // torus
-    vec3 pt = p + 0.2;
-    pt.y -= 8;
-    pR(pt.yx, 4.0 * u_time);
-    pR(pt.yz, 0.3 * u_time);
-    float torusDist = fTorus(pt, 0.7, 16.0);
-    float torusID = 5.0;
-    vec2 torus = vec2(torusDist, torusID);
-    // sphere
-    vec3 ps = p + 0.2;
-    ps.y -= 8;
-    float sphereDist = fSphere(ps, 13.0 + displacePixel(p));
-    float sphereID = 1.0;
-    vec2 sphere = vec2(sphereDist, sphereID);
-    // manipulation operators
-    pMirrorOctant(p.xz, vec2(50, 50));
-    p.x = -abs(p.x) + 20;
-    pMod1(p.z, 15);
-    // box
-    float boxDist = fBoxCheap(p, vec3(3,9,4));
-    float boxID = 3.0;
-    vec2 box = vec2(boxDist, boxID);
-    // cylinder
-    vec3 pc = p;
-    pc.y -= 9.0;
-    float cylinderDist = fCylinder(pc.yxz, 4, 3);
-    float cylinderID = 3.0;
-    vec2 cylinder = vec2(cylinderDist, cylinderID);
-    // result
-    vec2 res;
-    //    res = wall;
-    res = unionOnID(box, cylinder);
-    res = differenceStairsID(res, plane, 4.0, 5.0);
-    res = unionOnID(res, sphere);
-    res = unionOnID(res, torus);
-    return res.x;
+	if(u_mode == 0){
+		//plane
+		float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
+		float planeID = 2.0;
+		vec2 plane = vec2(planeDist, planeID);
+		// sphere
+		vec3 ps = mod(p,10) - 10 * .5;
+		float sphereDist = fSphere(ps, 2);
+		float sphereID = 1.0;
+		vec2 sphere = vec2(sphereDist, sphereID);
+		vec2 res;
+		res = unionOnID(sphere, plane);
+		return res;
+	}else if(u_mode == 1){
+		//plane
+		float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
+		float planeID = 2.0;
+		vec2 plane = vec2(planeDist, planeID);
+		// spheres
+		float sphereID = 4.0;
+		vec2 s1 = vec2(length(p - vec3(5 * sin(u_time * 5),5,0)) - 5, sphereID);
+		vec2 s2 = vec2(length(p - vec3(0,5,-3))-5, sphereID);
+		vec2 res;
+		res = unionOnID(plane, s1);
+		res = differenceOnID(res, s2);
+		return res;
+	}else if(u_mode == 2){
+		//plane
+		float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
+		float planeID = 2.0;
+		vec2 plane = vec2(planeDist, planeID);
+		float mixID = 3.0;
+		//torus
+		vec3 pt = p;
+		pR(pt.yx, 4.0 * u_time);
+		pR(pt.yz, 0.3 * u_time);
+		vec2 torus1 = vec2(fTorus(pt, 0.2, 8.5), mixID);
+		pR(pt.yx, 2.0 * u_time);
+		pR(pt.xz, 3.0 * u_time);
+		vec2 torus2 = vec2(fTorus(pt, 0.2, 8.5), mixID);
+		vec2 sphere = vec2(length(p - vec3(0,0,0)) - 6, mixID);
+		vec2 box = vec2(fBoxCheap(p,vec3(5)), mixID);
+		vec2 blob = vec2(fBlob(pt), mixID);
+		vec2 res;
+		res = differenceOnID(box, sphere);
+		res = smoothOnID(res, torus1, 3);
+		res = smoothOnID(res, torus2, 3);
+		res = unionOnID(res,blob);
+		res = unionOnID(res, plane);
+		return res;
+	}
 }
  
-float RayMarch(vec3 ro, vec3 rd) 
+vec2 RayMarch(vec3 ro, vec3 rd) 
 {
-  float dO = 0.; //Distane Origin
+  vec2 object = vec2(0,0); //Distane Origin
   for(int i=0;i<MAX_STEPS;i++)
   {
-    vec3 p = ro + rd * dO;
-    float ds = GetDist(p); // ds is Distance Scene
-    dO += ds;
-    if(dO > MAX_DIST || ds < SURF_DIST) 
+    vec3 p = ro + rd * object.x;
+    vec2 o = GetDist(p); // ds is Distance Scene
+    object.x += o.x;
+	object.y = o.y;
+    if(object.x > MAX_DIST || o.x < SURF_DIST) 
       break;
   }
-  return dO;
+  return object;
 }
  
 vec3 GetNormal(vec3 p)
 { 
-    float d = GetDist(p); // Distance
+    float d = GetDist(p).x; // Distance
     vec2 e = vec2(.01,0); // Epsilon
     vec3 n = d - vec3(
-    GetDist(p-e.xyy),
-    GetDist(p-e.yxy),
-    GetDist(p-e.yyx));
+    (GetDist(p-e.xyy).x),
+    (GetDist(p-e.yxy).x),
+    (GetDist(p-e.yyx)).x);
  
     return normalize(n);
 }
 float GetLight(vec3 p)
 { 
     // Directional light
-    vec3 lightPos = vec3(5.*sin(u_time),5.,5.0*cos(u_time)); // Light Position
+    vec3 lightPos = vec3(20.*sin(u_time),20.,20.0*cos(u_time)); // Light Position
     vec3 l = normalize(lightPos-p); // Light Vector
     vec3 n = GetNormal(p); // Normal Vector
    
@@ -807,11 +812,28 @@ float GetLight(vec3 p)
     dif = clamp(dif,0.,1.); // Clamp so it doesnt go below 0
    
     // Shadows
-    float d = RayMarch(p+n*SURF_DIST*2., l); 
+    float d = RayMarch(p+n*SURF_DIST*2., l).x; 
      
     if(d<length(lightPos-p)) dif *= .1;
  
-    return dif;
+    return dif + .1;
+}
+vec3 getMaterial(vec3 p, float id) {
+    vec3 m;
+    switch (int(id)) {
+        case 1:
+        m = vec3(0.7, 0.1, 0.0); break;
+        case 2:
+        m = vec3(0.2 + 0.4 * mod(floor(p.x / 5) + floor(p.z / 5), 2.0)); break;
+        case 3:
+        m = vec3(0.7, 0.8, 0.9); break;
+        case 4:
+        vec2 i = step(fract(0.5 * p.xz), vec2(1.0 / 10.0));
+        m = ((1.0 - i.x) * (1.0 - i.y)) * vec3(0.37, 0.12, 0.0); break;
+		case 5:
+		 m = vec3(0.1, 0.1, 0.1); break;
+    }
+    return m;
 }
 mat3 getCam(vec3 ro, vec3 lookAt) {
     vec3 camF = normalize(vec3(lookAt - ro));
@@ -827,13 +849,19 @@ void main()
     vec3 ro = vec3(u_cam); // Ray Origin/Camera
     vec3 rd = getCam(ro, vec3(0,1,0)) * normalize(vec3(uv, 1));//Ray direction projection matrix
    
-    float d = RayMarch(ro,rd); // Distance
+    vec2 object = RayMarch(ro,rd); // Distance
    
-    vec3 p = ro + rd * d;
-    float dif = GetLight(p); // Diffuse lighting
-    d*= .2;
-    vec3 color = vec3(dif);
-    //color += GetNormal(p);
+	vec3 background = vec3(0, 0, 0);
+	vec3 color;
+    if (object.x < MAX_DIST || u_fun==1){
+		vec3 p = ro + rd * object.x;
+		float dif = GetLight(p); // Diffuse lighting
+		color= mix(vec3(dif), getMaterial(p,object.y),.5);
+		if(u_fun==0)color = mix(color, background, (object.x/MAX_DIST));
+	}else{
+		color = background;
+	}
+    if(u_display==1) color = GetNormal(ro + rd * object.x);
     //float color = GetLight(p);
  
     // Set the output color

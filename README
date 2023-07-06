@@ -1,5 +1,39 @@
-I have been very delayed on this project because it has been incredibly hard to impliment polygon subtraction,
-I will turn in a project that is suffiencnt, just not what I originally planned
+Final Project: Ray Marching Basics
+
+  Carter Andrew
+  CSCI4229/5229 Summer 2023
+
+  Demonstrates procedural object and scene creation through ray marching
+  Uses ray marching for lighting, normal calculation, shadow casting, binary object operands, fog, and texure mapping
+  
+  There are 3 display modes and 2 view modes
+    Display modes:
+      1: Smooth intersection test
+      2: Repitition/shadow casting test
+      3: Object subtraction test
+    View modes:
+      1: Lighting/texutre mode
+      2: Normal modes
+
+How to build (From a command line on a computer with GLUT/freeGlut and GLEW in the root directory of the code):
+  1: make clean (Optional)
+  2: make
+
+Why this deserves an A :)
+  This is a demonstration of building on one of the more complicated topics of the semester: glsl vertex and fragment shaders. These tools are applied to build scenes that incoroperate lighting by appliying understanding of projection matricies, normals, and the glut pipeline. It applies lighting on a pixel by pixel basis, creates it's own projection matricies used for ray marching, and builds the scenes entirely on the GPU.
+  On top of this I have built a upon the knowlege provided in class and implimented and intergrated new ideas to demonstrate that I not only know the content but can expand upon it.
+
+Key bindings:
+  PageUp      Zoom out by one unit
+  PageDown    Zoom in by one unit
+  m           Cycle through display modes
+  n           Toggle between view modes
+  p           Play or pause animation in scene
+  f           Fun stuff, get rid of max render distance to see how the shader handles mapping textures and normals to points outside the bounds of the draw range
 
 Sources:
-  https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-SA-97135.pdf
+  https://mercury.sexy/hg_sdf/
+  https://github.com/SebLague/Ray-Marching
+  https://www.youtube.com/watch?v=Cp5WWtMoeKg
+  https://timcoster.com/2020/02/13/raymarching-shader-pt3-smooth-blending-operators/
+
