@@ -15,7 +15,7 @@ uniform int u_fun;//Enable fog
 #define TWO_PI 6.2831852
 #define MAX_STEPS 100 // Max Raymarching steps
 #define MAX_DIST 200. // Max Raymarching distance
-#define SURF_DIST .05 // Surface Distance
+#define SURF_DIST .01 // Surface Distance
 
 
 
@@ -726,7 +726,7 @@ vec2 GetDist(vec3 p)
 {
 	if(u_mode == 0){
 		//Setup plane first
-		float planeDist = fPlane(p, vec3(0, 1, 0), 14.0);
+		float planeDist = p.y;
 		float planeID = 2.0;
 		vec2 plane = vec2(planeDist, planeID);
 		// Make a sphere that repeats. By using mod on our pixel we can change where the projection is aiming for this pixel
