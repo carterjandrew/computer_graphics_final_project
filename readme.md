@@ -1,6 +1,7 @@
 # CSCI4229 Final Project: Ray Marching Basics
 ## Demonstrates procedural object and scene creation through ray marching
 ## Uses ray marching for lighting, normal calculation, shadow casting, binary object operands, fog, and texure mapping
+![alt text](https://github.com/carterjandrew/computer_graphics_final_project/blob/main/Screenshots/blending.png)
 ### System Requirements:
 1. Windows, macOS, x-11 or wayland based display sever
 2. Compatability with GLUT or free GLUT
